@@ -1,0 +1,310 @@
+-- Using apaul11's account
+
+ssh apaul11@129.150.71.75
+
+-- Using tkhan9's account
+
+ssh tkhan9@129.150.71.75
+
+
+
+wget -O iowa_Liquor_Sales.csv https://projectcis5200.s3-us-west-1.amazonaws.com/iowa_Liquor_Sales.csv
+
+
+hdfs dfs -mkdir projectfolder
+
+hdfs dfs -ls
+
+hdfs dfs -put Iowa_Liquor_Sales.csv projectfolder/
+
+hdfs dfs -ls projectfolder/
+
+
+
+
+hdfs dfs -chmod -R o+w .
+
+
+beeline
+
+
+
+!connect jdbc:hive2://bigdai1-bdcsce-1:2181,bigdai1-bdcsce-2:2181,bigdai1-bdcsce-3:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2?tez.queue.name=interactive bdcsce_admin
+
+
+show databases;
+
+***************
+use apaul11; 
+***************
+--or
+
+**************
+use tkhan9;
+**************
+
+DROP TABLE IF EXISTS iowaLiquorSales;
+
+
+CREATE EXTERNAL TABLE IF NOT EXISTS IowaLiquorSales(Invoice_Item_Number string, Sale_Date
+date, Store_Number string, Store_Name string, Address string,
+ City string, Zip_Code string, Store_Location string, County_Number
+string, County string,
+ Category string, Category_Name string, Vendor_Number string, Vendor_Name
+string, Item_Number string,
+ Item_Description string, Pack int, Bottle_Volume_ml int, State_Bottle_Cost
+double, State_Bottle_Retail double, Bottles_Sold int, Sale_in_Dollars double,
+Volume_Sold_in_Litres double, Volume_Sold_in_Gallons double )
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION '/user/tkhan9/projectfolder/'
+TBLPROPERTIES ('skip.header.line.count'='1');
+
+
+show tables;
+
+describe iowaliquorsales;
+
+
+
+SELECT * FROM iowaliquorsales LIMIT 2;
+
+
+
+
+********************************Alter columns******************************
+
+
+
+ALTER TABLE iowaliquorsales CHANGE sale_date sale_date timestamp;
+
+ALTER TABLE iowaliquorsales CHANGE sale_in_dollars sale_in_dollars bigint;
+
+ALTER TABLE iowaliquorsales CHANGE volume_sold_in_litres volume_sold_in_litres bigint;
+
+ALTER TABLE iowaliquorsales CHANGE volume_sold_in_gallons volume_sold_in_gallons bigint;
+
+
+***********Change date format***************
+
+
+ALTER TABLE iowaliquorsales SET SERDEPROPERTIES ("timestamp.formats"="MM/dd/yyyy");
+
+
+describe iowaliquorsales;
+
+
+***********************************************************************************
+			Sales trend over the years
+***********************************************************************************
+
+SELECT sum(sale_in_dollars) sales , 
+       YEAR(sale_date) year  
+       from iowaliquorsales 
+       Where YEAR(sale_date) <> "2020"
+       GROUP BY YEAR(sale_date) 
+       ORDER BY year;
+
+
+
+
+**********************************************************
+		Top 10 counties by sale
+**********************************************************
+
+SELECT sum(sale_in_dollars) sales , 
+       upper(County) County
+       from iowaliquorsales 
+       GROUP BY upper(county)
+       ORDER BY sales desc limit 10;
+
+
+
+
+**************************************************************************
+		Top 5 categories sold with highest volume
+**************************************************************************
+
+SELECT SUM(Volume_Sold_in_Litres) volume,
+       SUM(sale_in_dollars) sales , 
+       upper(Category_Name) CategoryName
+       FROM iowaliquorsales 
+       GROUP BY upper(Category_Name)
+       ORDER BY volume DESC limit 5;
+
+
+
+
+**************************************************************************
+		Top 10 cities with highest sales
+**************************************************************************
+
+
+SELECT sum(sale_in_dollars) sales , 
+       upper(City) City 
+       FROM iowaliquorsales 
+       GROUP BY upper(City)
+       ORDER BY sales DESC LIMIT 10;
+
+
+
+
+
+************************************************************************************
+		Sale of Canadian Whiskies across counties for the year 2019
+************************************************************************************
+
+SELECT Invoice_Item_Number, 
+       sale_in_dollars sales, 
+       County, 
+       sale_date
+  FROM iowaliquorsales 
+  where upper(category_name) = 'CANADIAN WHISKIES'
+    And YEAR(sale_date) = "2019";
+
+
+
+*****************************************************************************************************
+	Temporal analysis - Sale of Canadian Whiskies across counties for the year 2019
+*****************************************************************************************************
+
+
+DROP TABLE IF EXISTS SaleCanadianWhiskies;
+
+
+
+
+CREATE TABLE IF NOT EXISTS SaleCanadianWhiskies
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION '/user/tkhan9/projectfolder/SaleCanadianWhiskies/'
+AS
+SELECT Invoice_Item_Number, 
+       sale_in_dollars sales, 
+       County, 
+       sale_date
+FROM iowaliquorsales 
+where upper(category_name) = 'CANADIAN WHISKIES'
+    And YEAR(sale_date) = "2019";
+
+
+********************
+--Press Ctrl+Z
+********************
+
+
+********************************************************************************
+		SaleCanadianWhiskies Data Extraction
+********************************************************************************
+
+ hdfs dfs -ls projectfolder/SaleCanadianWhiskies
+
+
+ hdfs dfs -get projectfolder/SaleCanadianWhiskies/000000_0
+
+*******************************
+	Open new terminal
+*******************************
+
+ scp tkhan9@129.150.71.75:/home/tkhan9/000000_0 000000_0.csv
+
+
+
+
+
+************************************************************************************************************
+			Tempo-Spatial analysis - Sale of Canadian Whiskies across counties
+************************************************************************************************************
+
+rm 000000_0
+
+
+wget –O Cleaned_location_data.csv https://projectcis5200.s3-us-west-1.amazonaws.com/Cleaned_location_data.csv
+
+
+
+hdfs dfs -mkdir projectfolder/tempo_spatial_data
+
+hdfs dfs -put Cleaned_location_data.csv projectfolder/tempo_spatial_data/
+
+
+
+
+DROP TABLE IF EXISTS sale_location_data;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS sale_location_data(Invoice_or_Item_Number string, Date_of_sale
+date, StoreNumber string, StoreName string, 
+City string, Zip_Code string, Longitude double, Latitude double, County string,
+Category_Name string, Sale_Amount double,
+Volume_Sold_litres double)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION '/user/tkhan9/projectfolder/tempo_spatial_data/'
+TBLPROPERTIES ('skip.header.line.count'='1');
+
+
+
+
+
+ALTER TABLE sale_location_data CHANGE Date_of_sale Date_of_sale timestamp;
+
+ALTER TABLE sale_location_data CHANGE Sale_Amount Sale_Amount bigint;
+
+ALTER TABLE sale_location_data CHANGE Volume_Sold_litres Volume_Sold_litres bigint;
+
+
+
+ALTER TABLE sale_location_data SET SERDEPROPERTIES ("timestamp.formats"="MM/dd/yyyy");
+
+
+
+DESCRIBE sale_location_data;
+
+
+
+SELECT * FROM sale_location_data LIMIT 2;
+
+
+
+
+DROP TABLE IF EXISTS Sale_location_CanadianWhiskies;
+
+
+CREATE TABLE IF NOT EXISTS Sale_location_CanadianWhiskies
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION '/user/tkhan9/projectfolder/Sale_location_CanadianWhiskies/'
+AS
+SELECT Invoice_or_Item_Number, 
+       Date_of_sale,
+       County,
+       Longitude,
+       Latitude,
+       Sale_Amount     
+FROM sale_location_data 
+where Upper(category_name) = 'CANADIAN WHISKIES';
+
+
+
+
+
+SELECT * FROM Sale_location_CanadianWhiskies LIMIT 2;
+
+
+********************
+--Press Ctrl+Z
+********************
+
+
+********************************************************************************
+		Sale_location_CanadianWhiskies Data Extraction
+********************************************************************************
+
+hdfs dfs -ls projectfolder/Sale_Location_CanadianWhiskies/
+
+
+hdfs dfs -get projectfolder/Sale_location_CanadianWhiskies/000000_0
+
+
+*******************************
+	Open new terminal
+*******************************
+
+
+scp tkhan9@129.150.71.75:/home/tkhan9/000000_0 000000_0.csv
