@@ -1,0 +1,46 @@
+
+
+***********************************************
+	Original Dataset source
+***********************************************
+
+https://data.iowa.gov/Sales-Distribution/Iowa-Liquor-Sales/m3tr-qhgy
+
+
+
+
+
+********************************************************
+	Amazon S3 link to iowa_Liquor_Sales.csv
+********************************************************
+
+https://projectcis5200.s3-us-west-1.amazonaws.com/iowa_Liquor_Sales.csv
+
+
+
+
+************************************************************
+	Amazon S3 link to Cleaned_location_data.csv
+************************************************************
+
+
+https://projectcis5200.s3-us-west-1.amazonaws.com/Cleaned_location_data.csv
+
+
+
+
+
+**************************************************
+	Youtube Link to 3D Map Video capture
+**************************************************
+
+https://youtu.be/nYV3qjIAUEI 
+
+
+
+**********************************************************
+	Link of visualization on Power BI
+**********************************************************
+
+https://app.powerbi.com/groups/dc32f664-24d0-4635-910c-087df8d9119e/reports/bfa9f9a7-e08a-4518-9f9b-6e587f1f5a2e?ctid=ce8a2002-448f-4f58-82b1-d86f73e3afdd
+
